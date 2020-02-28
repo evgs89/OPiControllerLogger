@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/streadway/amqp"
 	//"io"
@@ -22,12 +24,29 @@ type LogMessage struct {
 	message  string
 }
 
+func (lm *LogMessage) MarshalJSON() ([]byte, error) {
+	dt, _ := json.Marshal(lm.datetime)
+	sender, _ := json.Marshal(lm.sender)
+	msg, _ := json.Marshal(lm.message)
+	return []byte(fmt.Sprintf("[%v, %v, %v]", string(dt), string(sender), string(msg))), nil
+}
+
 func NewLogMessageFromRabbit(msg []byte) *LogMessage {
 	var l LogMessage
 	data := strings.Split(string(msg), "::")
 	l.datetime = data[0]
 	l.sender = data[1]
 	l.message = data[2]
+	return &l
+}
+
+func NewLogMessageFromSql(row *sql.Rows) *LogMessage {
+	var l LogMessage
+	var id int
+	err := row.Scan(id, &l.datetime, &l.sender, &l.message)
+	if err != nil {
+		log.Println("Error parsing row: ", err)
+	}
 	return &l
 }
 
@@ -88,6 +107,14 @@ func main() {
 func ReturnNLogMessages(num int, page int, db sql.DB) []LogMessage {
 	rlock.RLock()
 	defer rlock.RUnlock()
-	rows, err := db.Query()
-
+	rows, err := db.Query("SELECT * FROM log LIMIT $1 OFFSET $2", string(num), string(num * page))
+	if err != nil {
+		log.Println("Error getting data from DB: ", err)
+	}
+	defer rows.Close()
+	var messages []LogMessage
+	for rows.Next() {
+		messages = append(messages, *NewLogMessageFromSql(rows))
+	}
+	return messages
 }
