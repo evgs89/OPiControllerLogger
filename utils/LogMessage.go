@@ -25,9 +25,9 @@ func (lm *LogMessage) MarshalJSON() ([]byte, error) {
 func NewLogMessageFromRabbit(msg []byte) *LogMessage {
 	var l LogMessage
 	data := strings.Split(string(msg), "::")
-	l.Datetime = data[0]
-	l.Sender = data[1]
-	l.Message = data[2]
+	l.Datetime = strings.TrimSpace(data[0])
+	l.Sender = strings.TrimSpace(data[1])
+	l.Message = strings.TrimSpace(data[2])
 	return &l
 }
 
