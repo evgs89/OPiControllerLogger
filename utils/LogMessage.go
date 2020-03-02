@@ -44,7 +44,7 @@ func NewLogMessageFromSql(rows *sql.Rows) *LogMessage {
 func ReturnNLogMessages(num int, page int, db *sql.DB, lock *sync.RWMutex) []byte {
 	lock.RLock()
 	defer lock.RUnlock()
-	rows, err := db.Query("SELECT * FROM log LIMIT $1 OFFSET $2", num, num*page)
+	rows, err := db.Query("SELECT * FROM log ORDER BY datetime DESC LIMIT $1 OFFSET $2", num, num*page)
 	if err != nil {
 		log.Println("Error getting data from DB: ", err)
 	}
