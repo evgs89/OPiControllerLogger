@@ -54,13 +54,13 @@ func main() {
 	defer db.Close()
 	forever := make(chan bool)
 	go ConsumeMessages(messages, db)
-	go StartHttpServer(db, err)
+	go StartHttpServer(db)
 	<-forever
 }
 
-func StartHttpServer(db *sql.DB, err error) {
+func StartHttpServer(db *sql.DB) {
 	http.HandleFunc("/", HTTPHandler(db))
-	err = http.ListenAndServe(":48700", nil)
+	err := http.ListenAndServe(":48700", nil)
 	if err != nil {
 		fmt.Println("http server error: ", err)
 	}
@@ -94,7 +94,10 @@ func HTTPHandler(db *sql.DB) func(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			page = 0
 		}
-		_, err = w.Write(utils.ReturnNLogMessages(num, page, *db, &rlock))
+		_, err = w.Write(utils.ReturnNLogMessages(num, page, db, &rlock))
+		if err != nil {
+			log.Println("HTTPServer Error: ", err)
+		}
 	}
 }
 

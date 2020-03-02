@@ -41,7 +41,7 @@ func NewLogMessageFromSql(rows *sql.Rows) *LogMessage {
 	return &l
 }
 
-func ReturnNLogMessages(num int, page int, db sql.DB, lock *sync.RWMutex) []byte {
+func ReturnNLogMessages(num int, page int, db *sql.DB, lock *sync.RWMutex) []byte {
 	lock.RLock()
 	defer lock.RUnlock()
 	rows, err := db.Query("SELECT * FROM log LIMIT $1 OFFSET $2", num, num*page)
