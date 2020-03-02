@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 )
 
 type LogMessage struct {
@@ -38,4 +39,23 @@ func NewLogMessageFromSql(rows *sql.Rows) *LogMessage {
 		log.Println("Error parsing row: ", err)
 	}
 	return &l
+}
+
+func ReturnNLogMessages(num int, page int, db sql.DB, lock *sync.RWMutex) []byte {
+	lock.RLock()
+	defer lock.RUnlock()
+	rows, err := db.Query("SELECT * FROM log LIMIT $1 OFFSET $2", num, num*page)
+	if err != nil {
+		log.Println("Error getting data from DB: ", err)
+	}
+	defer rows.Close()
+	var messages []LogMessage
+	for rows.Next() {
+		messages = append(messages, *NewLogMessageFromSql(rows))
+	}
+	data, err := json.Marshal(messages)
+	if err != nil {
+		log.Println("Error serializing data to JSON: ", err)
+	}
+	return data
 }

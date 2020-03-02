@@ -3,7 +3,6 @@ package main
 import (
 	"OPiControllerLogger/utils"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/streadway/amqp"
@@ -95,25 +94,7 @@ func HTTPHandler(db *sql.DB) func(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			page = 0
 		}
-		_, err = w.Write(ReturnNLogMessages(num, page, *db))
+		_, err = w.Write(utils.ReturnNLogMessages(num, page, *db, &rlock))
 	}
 }
 
-func ReturnNLogMessages(num int, page int, db sql.DB) []byte {
-	rlock.RLock()
-	defer rlock.RUnlock()
-	rows, err := db.Query("SELECT * FROM log LIMIT $1 OFFSET $2", num, num*page)
-	if err != nil {
-		log.Println("Error getting data from DB: ", err)
-	}
-	defer rows.Close()
-	var messages []utils.LogMessage
-	for rows.Next() {
-		messages = append(messages, *utils.NewLogMessageFromSql(rows))
-	}
-	data, err := json.Marshal(messages)
-	if err != nil {
-		log.Println("Error serializing data to JSON: ", err)
-	}
-	return data
-}
